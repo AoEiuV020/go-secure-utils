@@ -1,21 +1,45 @@
+// Package main provides centralized exports for all crypto utility functions
 package main
 
 import (
-	"fmt"
+	"crypto/rsa"
+
+	rsautils "go-secure-utils/pkg/crypto/rsa"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
+// RSA 加密/解密函数
 
-func main() {
-	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-	s := "gopher"
-	fmt.Printf("Hello and welcome, %s!\n", s)
+// GenerateRSAKeyPair 生成指定位数的RSA密钥对
+func GenerateRSAKeyPair(bits int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
+	return rsautils.GenerateKeyPair(bits)
+}
 
-	for i := 1; i <= 5; i++ {
-		//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-		// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-		fmt.Println("i =", 100/i)
-	}
+// RSAPrivateKeyToBytes 将RSA私钥转换为PEM格式
+func RSAPrivateKeyToBytes(priv *rsa.PrivateKey) []byte {
+	return rsautils.PrivateKeyToBytes(priv)
+}
+
+// RSAPublicKeyToBytes 将RSA公钥转换为PEM格式
+func RSAPublicKeyToBytes(pub *rsa.PublicKey) ([]byte, error) {
+	return rsautils.PublicKeyToBytes(pub)
+}
+
+// RSABytesToPrivateKey 将PEM编码的RSA私钥转换为rsa.PrivateKey
+func RSABytesToPrivateKey(privPEM []byte) (*rsa.PrivateKey, error) {
+	return rsautils.BytesToPrivateKey(privPEM)
+}
+
+// RSABytesToPublicKey 将PEM编码的RSA公钥转换为rsa.PublicKey
+func RSABytesToPublicKey(pubPEM []byte) (*rsa.PublicKey, error) {
+	return rsautils.BytesToPublicKey(pubPEM)
+}
+
+// RSAEncryptWithPublicKey 使用公钥加密数据
+func RSAEncryptWithPublicKey(msg []byte, pub *rsa.PublicKey) ([]byte, error) {
+	return rsautils.EncryptWithPublicKey(msg, pub)
+}
+
+// RSADecryptWithPrivateKey 使用私钥解密数据
+func RSADecryptWithPrivateKey(ciphertext []byte, priv *rsa.PrivateKey) ([]byte, error) {
+	return rsautils.DecryptWithPrivateKey(ciphertext, priv)
 }
