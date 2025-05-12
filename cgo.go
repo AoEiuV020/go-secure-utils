@@ -6,11 +6,32 @@ package main
 #include <string.h>
 
 typedef unsigned char byte;
+
+// 基本字节数组结构
 typedef struct {
     byte* data;
     int length;
     char* error; // NULL if no error
 } ByteArray;
+
+// 密钥对结构
+typedef struct {
+    ByteArray publicKey;
+    ByteArray privateKey;
+    char* error; // NULL if no error
+} RsaKeyPair;
+
+// 字符串结果结构
+typedef struct {
+    char* data;
+    char* error; // NULL if no error
+} StringResult;
+
+// 布尔结果结构
+typedef struct {
+    int success; // 1 for true, 0 for false
+    char* error; // NULL if no error
+} BoolResult;
 */
 import "C"
 import (
@@ -18,7 +39,8 @@ import (
 	"unsafe"
 )
 
-// freeByteArray releases memory allocated for ByteArray
+// 内存释放函数
+// freeByteArray 释放为ByteArray分配的内存
 func freeByteArray(result *C.ByteArray) {
 	if result.data != nil {
 		C.free(unsafe.Pointer(result.data))
@@ -30,12 +52,43 @@ func freeByteArray(result *C.ByteArray) {
 	}
 }
 
-// goBytes2CByteArray converts Go byte slice to C ByteArray
+// freeRsaKeyPair 释放为RsaKeyPair分配的内存
+func freeRsaKeyPair(result *C.RsaKeyPair) {
+	freeByteArray(&result.publicKey)
+	freeByteArray(&result.privateKey)
+	if result.error != nil {
+		C.free(unsafe.Pointer(result.error))
+		result.error = nil
+	}
+}
+
+// freeStringResult 释放为StringResult分配的内存
+func freeStringResult(result *C.StringResult) {
+	if result.data != nil {
+		C.free(unsafe.Pointer(result.data))
+		result.data = nil
+	}
+	if result.error != nil {
+		C.free(unsafe.Pointer(result.error))
+		result.error = nil
+	}
+}
+
+// freeBoolResult 释放为BoolResult分配的内存
+func freeBoolResult(result *C.BoolResult) {
+	if result.error != nil {
+		C.free(unsafe.Pointer(result.error))
+		result.error = nil
+	}
+}
+
+// 数据转换工具函数
+// goBytes2CByteArray 将Go字节切片转换为C ByteArray
 func goBytes2CByteArray(data []byte, err error) C.ByteArray {
 	var result C.ByteArray
 
 	if err != nil {
-		// Return error
+		// 返回错误
 		errStr := C.CString(err.Error())
 		result.error = errStr
 		result.data = nil
@@ -51,7 +104,7 @@ func goBytes2CByteArray(data []byte, err error) C.ByteArray {
 		return result
 	}
 
-	// Allocate C memory and copy data
+	// 分配C内存并复制数据
 	cData := C.malloc(C.size_t(dataLen))
 	C.memcpy(cData, unsafe.Pointer(&data[0]), C.size_t(dataLen))
 
@@ -62,68 +115,275 @@ func goBytes2CByteArray(data []byte, err error) C.ByteArray {
 	return result
 }
 
-//export GenerateRSAKeyPair_C
-func GenerateRSAKeyPair_C(bits C.int) C.ByteArray {
-	// Generate key pair
-	privKey, _, err := GenerateRSAKeyPair(int(bits))
-	if err != nil {
-		return goBytes2CByteArray(nil, err)
-	}
-
-	// Convert private key to bytes (includes public key)
-	privKeyBytes := RSAPrivateKeyToBytes(privKey)
-
-	return goBytes2CByteArray(privKeyBytes, nil)
+// goBytes2GoSlice 将C字节数组转换为Go切片
+func goCBytes2GoSlice(data *C.byte, length C.int) []byte {
+	return C.GoBytes(unsafe.Pointer(data), length)
 }
 
-//export RSAEncrypt_C
-func RSAEncrypt_C(pubKeyBytes *C.byte, pubKeyLen C.int, data *C.byte, dataLen C.int) C.ByteArray {
-	// Convert C byte arrays to Go slices
-	pubKeyGo := C.GoBytes(unsafe.Pointer(pubKeyBytes), pubKeyLen)
-	dataGo := C.GoBytes(unsafe.Pointer(data), dataLen)
-
-	// Convert bytes to public key
-	pubKey, err := RSABytesToPublicKey(pubKeyGo)
+// createStringResult 将字符串和错误封装为StringResult
+func createStringResult(data string, err error) C.StringResult {
+	var result C.StringResult
+	
 	if err != nil {
-		return goBytes2CByteArray(nil, err)
+		result.error = C.CString(err.Error())
+		result.data = nil
+		return result
+	}
+	
+	result.data = C.CString(data)
+	result.error = nil
+	
+	return result
+}
+
+// createBoolResult 将布尔值和错误封装为BoolResult
+func createBoolResult(success bool, err error) C.BoolResult {
+	var result C.BoolResult
+	
+	if err != nil {
+		result.error = C.CString(err.Error())
+		result.success = 0
+		return result
+	}
+	
+	if success {
+		result.success = 1
+	} else {
+		result.success = 0
+	}
+	result.error = nil
+	
+	return result
+}
+
+// RSA接口导出函数
+//export RsaGenKeyPair_C
+func RsaGenKeyPair_C(bits C.int) C.RsaKeyPair {
+	var result C.RsaKeyPair
+
+	// 生成密钥对
+	keyPair, err := RsaGenKeyPair(int(bits))
+	if err != nil {
+		result.error = C.CString(err.Error())
+		return result
 	}
 
-	// Encrypt data
-	encrypted, err := RSAEncryptWithPublicKey(dataGo, pubKey)
+	// 将公钥和私钥转换为C的ByteArray
+	result.publicKey = goBytes2CByteArray(keyPair.PublicKey, nil)
+	result.privateKey = goBytes2CByteArray(keyPair.PrivateKey, nil)
+	result.error = nil
+
+	return result
+}
+
+//export RsaGetPublicKeyBase64_C
+func RsaGetPublicKeyBase64_C(publicKey *C.byte, publicKeyLen C.int) C.StringResult {
+	// 转换C字节数组为Go切片
+	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
+
+	// 创建临时密钥对
+	keyPair := &RsaKeyPair{
+		PublicKey: publicKeyGo,
+	}
+
+	// 获取Base64编码的公钥
+	base64PublicKey := RsaGetPublicKeyBase64(keyPair)
+
+	// 设置结果
+	return createStringResult(base64PublicKey, nil)
+}
+
+//export RsaGetPrivateKeyBase64_C
+func RsaGetPrivateKeyBase64_C(privateKey *C.byte, privateKeyLen C.int) C.StringResult {
+	// 转换C字节数组为Go切片
+	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
+
+	// 创建临时密钥对
+	keyPair := &RsaKeyPair{
+		PrivateKey: privateKeyGo,
+	}
+
+	// 获取Base64编码的私钥
+	base64PrivateKey := RsaGetPrivateKeyBase64(keyPair)
+
+	// 设置结果
+	return createStringResult(base64PrivateKey, nil)
+}
+
+//export RsaExtractPublicKey_C
+func RsaExtractPublicKey_C(privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+	// 转换C字节数组为Go切片
+	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
+
+	// 提取公钥
+	publicKey, err := RsaExtractPublicKey(privateKeyGo)
+
+	// 转换结果
+	return goBytes2CByteArray(publicKey, err)
+}
+
+//export RsaEncrypt_C
+func RsaEncrypt_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int) C.ByteArray {
+	// 转换C字节数组为Go切片
+	dataGo := goCBytes2GoSlice(data, dataLen)
+	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
+
+	// 加密数据
+	encrypted, err := RsaEncrypt(dataGo, publicKeyGo)
+
+	// 转换结果
 	return goBytes2CByteArray(encrypted, err)
 }
 
-//export RSADecrypt_C
-func RSADecrypt_C(privKeyBytes *C.byte, privKeyLen C.int, ciphertext *C.byte, ciphertextLen C.int) C.ByteArray {
-	// Convert C byte arrays to Go slices
-	privKeyGo := C.GoBytes(unsafe.Pointer(privKeyBytes), privKeyLen)
-	ciphertextGo := C.GoBytes(unsafe.Pointer(ciphertext), ciphertextLen)
+//export RsaEncryptBase64_C
+func RsaEncryptBase64_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int) C.StringResult {
+	// 转换C字节数组为Go切片
+	dataGo := goCBytes2GoSlice(data, dataLen)
+	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
 
-	// Convert bytes to private key
-	privKey, err := RSABytesToPrivateKey(privKeyGo)
-	if err != nil {
-		return goBytes2CByteArray(nil, err)
-	}
+	// 加密数据
+	encryptedBase64, err := RsaEncryptBase64(dataGo, publicKeyGo)
 
-	// Decrypt data
-	decrypted, err := RSADecryptWithPrivateKey(ciphertextGo, privKey)
+	// 设置结果
+	return createStringResult(encryptedBase64, err)
+}
+
+//export RsaDecrypt_C
+func RsaDecrypt_C(encryptedData *C.byte, encryptedDataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+	// 转换C字节数组为Go切片
+	encryptedDataGo := goCBytes2GoSlice(encryptedData, encryptedDataLen)
+	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
+
+	// 解密数据
+	decrypted, err := RsaDecrypt(encryptedDataGo, privateKeyGo)
+
+	// 转换结果
 	return goBytes2CByteArray(decrypted, err)
 }
 
-// This function is required to keep references to Go memory alive for C code
+//export RsaDecryptFromBase64_C
+func RsaDecryptFromBase64_C(encryptedBase64 *C.char, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+	// 转换C字符串和C字节数组为Go类型
+	encryptedBase64Go := C.GoString(encryptedBase64)
+	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
+
+	// 解密数据
+	decrypted, err := RsaDecryptFromBase64(encryptedBase64Go, privateKeyGo)
+
+	// 转换结果
+	return goBytes2CByteArray(decrypted, err)
+}
+
+//export RsaSign_C
+func RsaSign_C(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+	// 转换C字节数组为Go切片
+	dataGo := goCBytes2GoSlice(data, dataLen)
+	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
+
+	// 签名数据
+	signature, err := RsaSign(dataGo, privateKeyGo)
+
+	// 转换结果
+	return goBytes2CByteArray(signature, err)
+}
+
+//export RsaSignBase64_C
+func RsaSignBase64_C(data *C.char, privateKey *C.byte, privateKeyLen C.int) C.StringResult {
+	// 转换C字符串和C字节数组为Go类型
+	dataGo := C.GoString(data)
+	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
+
+	// 签名数据
+	signatureBase64, err := RsaSignBase64(dataGo, privateKeyGo)
+
+	// 设置结果
+	return createStringResult(signatureBase64, err)
+}
+
+//export RsaSignSha1_C
+func RsaSignSha1_C(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+	// 转换C字节数组为Go切片
+	dataGo := goCBytes2GoSlice(data, dataLen)
+	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
+
+	// 使用SHA1签名数据
+	signature, err := RsaSignSha1(dataGo, privateKeyGo)
+
+	// 转换结果
+	return goBytes2CByteArray(signature, err)
+}
+
+//export RsaVerify_C
+func RsaVerify_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int, signature *C.byte, signatureLen C.int) C.BoolResult {
+	// 转换C字节数组为Go切片
+	dataGo := goCBytes2GoSlice(data, dataLen)
+	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
+	signatureGo := goCBytes2GoSlice(signature, signatureLen)
+
+	// 验证签名
+	verified, err := RsaVerify(dataGo, publicKeyGo, signatureGo)
+
+	// 设置结果
+	return createBoolResult(verified, err)
+}
+
+//export RsaVerifyFromBase64_C
+func RsaVerifyFromBase64_C(data *C.char, publicKey *C.byte, publicKeyLen C.int, signatureBase64 *C.char) C.BoolResult {
+	// 转换C字符串和C字节数组为Go类型
+	dataGo := C.GoString(data)
+	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
+	signatureBase64Go := C.GoString(signatureBase64)
+
+	// 验证签名
+	verified, err := RsaVerifyFromBase64(dataGo, publicKeyGo, signatureBase64Go)
+
+	// 设置结果
+	return createBoolResult(verified, err)
+}
+
+//export RsaVerifySha1_C
+func RsaVerifySha1_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int, signature *C.byte, signatureLen C.int) C.BoolResult {
+	// 转换C字节数组为Go切片
+	dataGo := goCBytes2GoSlice(data, dataLen)
+	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
+	signatureGo := goCBytes2GoSlice(signature, signatureLen)
+
+	// 验证SHA1签名
+	verified, err := RsaVerifySha1(dataGo, publicKeyGo, signatureGo)
+
+	// 设置结果
+	return createBoolResult(verified, err)
+}
+
+// 内存管理函数导出
+
+//export FreeByteArray_C
+func FreeByteArray_C(result C.ByteArray) {
+	freeByteArray(&result)
+}
+
+//export FreeRsaKeyPair_C
+func FreeRsaKeyPair_C(result C.RsaKeyPair) {
+	freeRsaKeyPair(&result)
+}
+
+//export FreeStringResult_C
+func FreeStringResult_C(result C.StringResult) {
+	freeStringResult(&result)
+}
+
+//export FreeBoolResult_C
+func FreeBoolResult_C(result C.BoolResult) {
+	freeBoolResult(&result)
+}
+
+// KeepAlive 保持对Go内存的引用，防止被垃圾回收
 //
 //export KeepAlive
 func KeepAlive() {
 	runtime.KeepAlive(nil)
 }
 
-// FreeByteArray_C frees memory allocated for ByteArray
-//
-//export FreeByteArray_C
-func FreeByteArray_C(result C.ByteArray) {
-	freeByteArray(&result)
-}
-
 func main() {
-	// CGO requires a main function but we won't use it
+	// CGO 需要一个main函数，但我们不会使用它
 }
