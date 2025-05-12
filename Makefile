@@ -16,8 +16,6 @@ else
 	else ifeq ($(UNAME_S),Darwin)  # macOS
 		ANDROID_HOME ?= $(HOME)/Library/Android/sdk
 		NDK_PLATFORM := darwin-x86_64
-	else
-		$(error Unsupported OS: $(UNAME_S))
 	endif
 endif
 
@@ -55,17 +53,14 @@ LIB_NAME := $(LIB_PREFIX)$(PROJECT_NAME)
 all:
 ifeq ($(OS),Windows_NT)
 	$(MAKE) windows
+else ifeq ($(UNAME_S),Linux)
+	$(MAKE) linux
+else ifeq ($(UNAME_S),Darwin)  # macOS
+	$(MAKE) macos
+	# 在macOS上追加执行ios任务
+	$(MAKE) ios
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		$(MAKE) linux
-	else ifeq ($(UNAME_S),Darwin)
-		$(MAKE) macos
-		# 在macOS上追加执行ios任务
-		$(MAKE) ios
-	else
-		$(error Unsupported OS for default build: $(UNAME_S))
-	endif
+	$(error Unsupported OS for default build: $(UNAME_S))
 endif
 	# 如果NDK存在，追加执行android任务（所有平台通用）
 	@if [ "$(NDK_EXISTS)" = "true" ]; then \
