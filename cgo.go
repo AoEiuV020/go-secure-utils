@@ -1,4 +1,4 @@
-// Package main provides C-compatible interfaces to Go crypto functions
+//go:build cgo
 package main
 
 /*

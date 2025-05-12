@@ -71,6 +71,8 @@ endif
 	@if [ "$(NDK_EXISTS)" = "true" ]; then \
 		$(MAKE) android; \
 	fi
+	# 追加执行web任务（所有平台通用）
+	$(MAKE) web
 
 # 设置 all 为默认目标
 .DEFAULT_GOAL := all
