@@ -38,11 +38,34 @@ else ifeq ($(MAKECMDGOALS),linux)
 	PLATFORM = Linux
 else ifeq ($(MAKECMDGOALS),web)
 	PLATFORM = Web
+else ifeq ($(MAKECMDGOALS),all)
+	# 设置默认平台，将在 all 目标中处理
+else ifeq ($(MAKECMDGOALS),)
+	# 如果没有指定目标，也使用默认平台
 else
 	PLATFORM = $(MAKECMDGOALS)
 endif
 PREBUILD_PATH = $(PREBUILD_BASE)/$(PLATFORM)
 LIB_NAME := $(LIB_PREFIX)$(PROJECT_NAME)
+
+# 添加默认目标，根据系统类型自动选择目标
+.PHONY: all
+all:
+ifeq ($(OS),Windows_NT)
+	$(MAKE) windows
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		$(MAKE) linux
+	else ifeq ($(UNAME_S),Darwin)
+		$(MAKE) macos
+	else
+		$(error Unsupported OS for default build: $(UNAME_S))
+	endif
+endif
+
+# 设置 all 为默认目标
+.DEFAULT_GOAL := all
 
 android-armv7a: CURRENT_ARCH := armeabi-v7a
 android-armv7a:
