@@ -44,17 +44,23 @@ endif()
 # 构建库的完整路径
 set(LIBRARY_PATH "${PREBUILD_DIR}/${SYSTEM_NAME}/${SYSTEM_PROCESSOR}")
 
-# 设置动态库和导入库文件的完整路径
+# 设置库文件的完整路径
 if(WIN32)
     set(FULL_LIBRARY_PATH "${LIBRARY_PATH}/${LIBRARY_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
     set(FULL_IMPLIB_PATH "${LIBRARY_PATH}/${LIBRARY_NAME}.lib")
+    set(LIB_TYPE "SHARED")
+elseif(APPLE)
+    # macOS和iOS使用静态库(.a)
+    set(FULL_LIBRARY_PATH "${LIBRARY_PATH}/lib${LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    set(LIB_TYPE "STATIC")
 else()
     set(FULL_LIBRARY_PATH "${LIBRARY_PATH}/lib${LIBRARY_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(LIB_TYPE "SHARED")
 endif()
 
 # 如果库不存在，给出友好的错误信息
 if(NOT EXISTS "${FULL_LIBRARY_PATH}")
-    message(FATAL_ERROR "找不到所需的动态库: ${FULL_LIBRARY_PATH}\n请先在主项目目录运行 'make' 构建共享库")
+    message(FATAL_ERROR "找不到所需的库: ${FULL_LIBRARY_PATH}\n请先在主项目目录运行对应的构建脚本")
 endif()
 
 # 添加头文件搜索路径
@@ -68,15 +74,18 @@ endif()
 # 生成可执行文件
 add_executable(rsa_example rsa_example.c)
 
-# 复制动态库到输出目录
-add_custom_command(TARGET rsa_example POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${FULL_LIBRARY_PATH}
-        $<TARGET_FILE_DIR:rsa_example>
-    COMMENT "复制动态库到输出目录"
-)
+# 根据库类型决定是否需要复制动态库
+if(NOT "${LIB_TYPE}" STREQUAL "STATIC")
+    # 复制动态库到输出目录
+    add_custom_command(TARGET rsa_example POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${FULL_LIBRARY_PATH}
+            $<TARGET_FILE_DIR:rsa_example>
+        COMMENT "复制动态库到输出目录"
+    )
+endif()
 
-# 链接动态库
+# 链接库
 if(WIN32)
     # 检测编译器类型
     if(MSVC)
@@ -90,6 +99,18 @@ if(WIN32)
         # MinGW/GCC可以直接指定DLL的完整路径
         target_link_libraries(rsa_example "${FULL_LIBRARY_PATH}")
     endif()
+elseif(APPLE)
+    # 直接使用静态库路径
+    target_link_libraries(rsa_example "${FULL_LIBRARY_PATH}")
+    
+    # 链接macOS所需的系统框架
+    find_library(CORE_FOUNDATION CoreFoundation)
+    target_link_libraries(rsa_example ${CORE_FOUNDATION})
+    
+    # 如果需要，添加其他系统框架
+    find_library(SECURITY Security)
+    find_library(SYSTEM_CONFIGURATION SystemConfiguration)
+    target_link_libraries(rsa_example ${SECURITY} ${SYSTEM_CONFIGURATION})
 else()
     link_directories(${LIBRARY_PATH})
     target_link_libraries(rsa_example ${LIBRARY_NAME})
