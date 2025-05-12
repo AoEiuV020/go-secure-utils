@@ -38,77 +38,77 @@ typedef struct {
 // 这些函数仍然可用，但推荐使用新的Rsa前缀的函数
 typedef unsigned char byte;
 
-ByteArray GenerateRSAKeyPair_C(int bits);
-ByteArray RSAEncrypt_C(byte* publicKey, int publicKeyLen, byte* data, int dataLen);
-ByteArray RSADecrypt_C(byte* privateKey, int privateKeyLen, byte* ciphertext, int ciphertextLen);
+ByteArray goGenerateRSAKeyPair(int bits);
+ByteArray goRSAEncrypt(byte* publicKey, int publicKeyLen, byte* data, int dataLen);
+ByteArray goRSADecrypt(byte* privateKey, int privateKeyLen, byte* ciphertext, int ciphertextLen);
 
 // ========= 新的RSA API函数 =========
 
 // RSA密钥对生成与管理函数
 
 // 生成RSA密钥对
-RsaKeyPair RsaGenKeyPair_C(int bits);
+RsaKeyPair goRsaGenKeyPair(int bits);
 
 // 提取公钥
-ByteArray RsaExtractPublicKey_C(unsigned char* privateKey, int privateKeyLen);
+ByteArray goRsaExtractPublicKey(unsigned char* privateKey, int privateKeyLen);
 
 // 获取Base64编码的公钥
-StringResult RsaGetPublicKeyBase64_C(unsigned char* publicKey, int publicKeyLen);
+StringResult goRsaGetPublicKeyBase64(unsigned char* publicKey, int publicKeyLen);
 
 // 获取Base64编码的私钥
-StringResult RsaGetPrivateKeyBase64_C(unsigned char* privateKey, int privateKeyLen);
+StringResult goRsaGetPrivateKeyBase64(unsigned char* privateKey, int privateKeyLen);
 
 // RSA加密函数
 
 // 使用公钥加密数据
-ByteArray RsaEncrypt_C(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen);
+ByteArray goRsaEncrypt(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen);
 
 // 使用公钥加密数据并返回Base64编码的结果
-StringResult RsaEncryptBase64_C(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen);
+StringResult goRsaEncryptBase64(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen);
 
 // RSA解密函数
 
 // 使用私钥解密数据
-ByteArray RsaDecrypt_C(unsigned char* encryptedData, int encryptedDataLen, unsigned char* privateKey, int privateKeyLen);
+ByteArray goRsaDecrypt(unsigned char* encryptedData, int encryptedDataLen, unsigned char* privateKey, int privateKeyLen);
 
 // 解密Base64编码的加密数据
-ByteArray RsaDecryptFromBase64_C(char* encryptedBase64, unsigned char* privateKey, int privateKeyLen);
+ByteArray goRsaDecryptFromBase64(char* encryptedBase64, unsigned char* privateKey, int privateKeyLen);
 
 // RSA签名函数
 
 // 使用私钥对数据进行签名
-ByteArray RsaSign_C(unsigned char* data, int dataLen, unsigned char* privateKey, int privateKeyLen);
+ByteArray goRsaSign(unsigned char* data, int dataLen, unsigned char* privateKey, int privateKeyLen);
 
 // 使用私钥对字符串数据进行签名并返回Base64编码的结果
-StringResult RsaSignBase64_C(char* data, unsigned char* privateKey, int privateKeyLen);
+StringResult goRsaSignBase64(char* data, unsigned char* privateKey, int privateKeyLen);
 
 // 使用SHA1哈希算法和私钥对数据进行签名
-ByteArray RsaSignSha1_C(unsigned char* data, int dataLen, unsigned char* privateKey, int privateKeyLen);
+ByteArray goRsaSignSha1(unsigned char* data, int dataLen, unsigned char* privateKey, int privateKeyLen);
 
 // RSA签名验证函数
 
 // 验证签名
-BoolResult RsaVerify_C(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen, unsigned char* signature, int signatureLen);
+BoolResult goRsaVerify(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen, unsigned char* signature, int signatureLen);
 
 // 验证Base64编码的签名
-BoolResult RsaVerifyFromBase64_C(char* data, unsigned char* publicKey, int publicKeyLen, char* signatureBase64);
+BoolResult goRsaVerifyFromBase64(char* data, unsigned char* publicKey, int publicKeyLen, char* signatureBase64);
 
 // 使用SHA1哈希算法验证签名
-BoolResult RsaVerifySha1_C(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen, unsigned char* signature, int signatureLen);
+BoolResult goRsaVerifySha1(unsigned char* data, int dataLen, unsigned char* publicKey, int publicKeyLen, unsigned char* signature, int signatureLen);
 
 // ========= 内存管理函数 =========
 
 // 释放ByteArray结构分配的内存
-void FreeByteArray_C(ByteArray result);
+void goFreeByteArray(ByteArray result);
 
 // 释放RsaKeyPair结构分配的内存
-void FreeRsaKeyPair_C(RsaKeyPair result);
+void goFreeRsaKeyPair(RsaKeyPair result);
 
 // 释放StringResult结构分配的内存
-void FreeStringResult_C(StringResult result);
+void goFreeStringResult(StringResult result);
 
 // 释放BoolResult结构分配的内存
-void FreeBoolResult_C(BoolResult result);
+void goFreeBoolResult(BoolResult result);
 
 // 保持对Go内存的引用，防止被垃圾回收
 void KeepAlive();

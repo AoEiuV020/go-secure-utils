@@ -157,8 +157,8 @@ func createBoolResult(success bool, err error) C.BoolResult {
 }
 
 // RSA接口导出函数
-//export RsaGenKeyPair_C
-func RsaGenKeyPair_C(bits C.int) C.RsaKeyPair {
+//export goRsaGenKeyPair
+func goRsaGenKeyPair(bits C.int) C.RsaKeyPair {
 	var result C.RsaKeyPair
 
 	// 生成密钥对
@@ -176,8 +176,8 @@ func RsaGenKeyPair_C(bits C.int) C.RsaKeyPair {
 	return result
 }
 
-//export RsaGetPublicKeyBase64_C
-func RsaGetPublicKeyBase64_C(publicKey *C.byte, publicKeyLen C.int) C.StringResult {
+//export goRsaGetPublicKeyBase64
+func goRsaGetPublicKeyBase64(publicKey *C.byte, publicKeyLen C.int) C.StringResult {
 	// 转换C字节数组为Go切片
 	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
 
@@ -193,8 +193,8 @@ func RsaGetPublicKeyBase64_C(publicKey *C.byte, publicKeyLen C.int) C.StringResu
 	return createStringResult(base64PublicKey, nil)
 }
 
-//export RsaGetPrivateKeyBase64_C
-func RsaGetPrivateKeyBase64_C(privateKey *C.byte, privateKeyLen C.int) C.StringResult {
+//export goRsaGetPrivateKeyBase64
+func goRsaGetPrivateKeyBase64(privateKey *C.byte, privateKeyLen C.int) C.StringResult {
 	// 转换C字节数组为Go切片
 	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
 
@@ -210,8 +210,8 @@ func RsaGetPrivateKeyBase64_C(privateKey *C.byte, privateKeyLen C.int) C.StringR
 	return createStringResult(base64PrivateKey, nil)
 }
 
-//export RsaExtractPublicKey_C
-func RsaExtractPublicKey_C(privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+//export goRsaExtractPublicKey
+func goRsaExtractPublicKey(privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
 	// 转换C字节数组为Go切片
 	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
 
@@ -222,8 +222,8 @@ func RsaExtractPublicKey_C(privateKey *C.byte, privateKeyLen C.int) C.ByteArray 
 	return goBytes2CByteArray(publicKey, err)
 }
 
-//export RsaEncrypt_C
-func RsaEncrypt_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int) C.ByteArray {
+//export goRsaEncrypt
+func goRsaEncrypt(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int) C.ByteArray {
 	// 转换C字节数组为Go切片
 	dataGo := goCBytes2GoSlice(data, dataLen)
 	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
@@ -235,8 +235,8 @@ func RsaEncrypt_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C
 	return goBytes2CByteArray(encrypted, err)
 }
 
-//export RsaEncryptBase64_C
-func RsaEncryptBase64_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int) C.StringResult {
+//export goRsaEncryptBase64
+func goRsaEncryptBase64(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int) C.StringResult {
 	// 转换C字节数组为Go切片
 	dataGo := goCBytes2GoSlice(data, dataLen)
 	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
@@ -248,8 +248,8 @@ func RsaEncryptBase64_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKe
 	return createStringResult(encryptedBase64, err)
 }
 
-//export RsaDecrypt_C
-func RsaDecrypt_C(encryptedData *C.byte, encryptedDataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+//export goRsaDecrypt
+func goRsaDecrypt(encryptedData *C.byte, encryptedDataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
 	// 转换C字节数组为Go切片
 	encryptedDataGo := goCBytes2GoSlice(encryptedData, encryptedDataLen)
 	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
@@ -261,8 +261,8 @@ func RsaDecrypt_C(encryptedData *C.byte, encryptedDataLen C.int, privateKey *C.b
 	return goBytes2CByteArray(decrypted, err)
 }
 
-//export RsaDecryptFromBase64_C
-func RsaDecryptFromBase64_C(encryptedBase64 *C.char, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+//export goRsaDecryptFromBase64
+func goRsaDecryptFromBase64(encryptedBase64 *C.char, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
 	// 转换C字符串和C字节数组为Go类型
 	encryptedBase64Go := C.GoString(encryptedBase64)
 	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
@@ -274,8 +274,8 @@ func RsaDecryptFromBase64_C(encryptedBase64 *C.char, privateKey *C.byte, private
 	return goBytes2CByteArray(decrypted, err)
 }
 
-//export RsaSign_C
-func RsaSign_C(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+//export goRsaSign
+func goRsaSign(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
 	// 转换C字节数组为Go切片
 	dataGo := goCBytes2GoSlice(data, dataLen)
 	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
@@ -287,8 +287,8 @@ func RsaSign_C(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLen C.
 	return goBytes2CByteArray(signature, err)
 }
 
-//export RsaSignBase64_C
-func RsaSignBase64_C(data *C.char, privateKey *C.byte, privateKeyLen C.int) C.StringResult {
+//export goRsaSignBase64
+func goRsaSignBase64(data *C.char, privateKey *C.byte, privateKeyLen C.int) C.StringResult {
 	// 转换C字符串和C字节数组为Go类型
 	dataGo := C.GoString(data)
 	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
@@ -300,8 +300,8 @@ func RsaSignBase64_C(data *C.char, privateKey *C.byte, privateKeyLen C.int) C.St
 	return createStringResult(signatureBase64, err)
 }
 
-//export RsaSignSha1_C
-func RsaSignSha1_C(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
+//export goRsaSignSha1
+func goRsaSignSha1(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLen C.int) C.ByteArray {
 	// 转换C字节数组为Go切片
 	dataGo := goCBytes2GoSlice(data, dataLen)
 	privateKeyGo := goCBytes2GoSlice(privateKey, privateKeyLen)
@@ -313,8 +313,8 @@ func RsaSignSha1_C(data *C.byte, dataLen C.int, privateKey *C.byte, privateKeyLe
 	return goBytes2CByteArray(signature, err)
 }
 
-//export RsaVerify_C
-func RsaVerify_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int, signature *C.byte, signatureLen C.int) C.BoolResult {
+//export goRsaVerify
+func goRsaVerify(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int, signature *C.byte, signatureLen C.int) C.BoolResult {
 	// 转换C字节数组为Go切片
 	dataGo := goCBytes2GoSlice(data, dataLen)
 	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
@@ -327,8 +327,8 @@ func RsaVerify_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.
 	return createBoolResult(verified, err)
 }
 
-//export RsaVerifyFromBase64_C
-func RsaVerifyFromBase64_C(data *C.char, publicKey *C.byte, publicKeyLen C.int, signatureBase64 *C.char) C.BoolResult {
+//export goRsaVerifyFromBase64
+func goRsaVerifyFromBase64(data *C.char, publicKey *C.byte, publicKeyLen C.int, signatureBase64 *C.char) C.BoolResult {
 	// 转换C字符串和C字节数组为Go类型
 	dataGo := C.GoString(data)
 	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
@@ -341,8 +341,8 @@ func RsaVerifyFromBase64_C(data *C.char, publicKey *C.byte, publicKeyLen C.int, 
 	return createBoolResult(verified, err)
 }
 
-//export RsaVerifySha1_C
-func RsaVerifySha1_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int, signature *C.byte, signatureLen C.int) C.BoolResult {
+//export goRsaVerifySha1
+func goRsaVerifySha1(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLen C.int, signature *C.byte, signatureLen C.int) C.BoolResult {
 	// 转换C字节数组为Go切片
 	dataGo := goCBytes2GoSlice(data, dataLen)
 	publicKeyGo := goCBytes2GoSlice(publicKey, publicKeyLen)
@@ -357,23 +357,43 @@ func RsaVerifySha1_C(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLe
 
 // 内存管理函数导出
 
-//export FreeByteArray_C
-func FreeByteArray_C(result C.ByteArray) {
+//export goGenerateRSAKeyPair
+func goGenerateRSAKeyPair(bits C.int) C.ByteArray {
+	// 调用新API生成密钥对
+	keyPair := goRsaGenKeyPair(bits)
+	// 只返回私钥部分作为向后兼容
+	return keyPair.privateKey
+}
+
+//export goRSAEncrypt
+func goRSAEncrypt(publicKey *C.byte, publicKeyLen C.int, data *C.byte, dataLen C.int) C.ByteArray {
+	// 调用新API进行加密
+	return goRsaEncrypt(data, dataLen, publicKey, publicKeyLen)
+}
+
+//export goRSADecrypt
+func goRSADecrypt(privateKey *C.byte, privateKeyLen C.int, ciphertext *C.byte, ciphertextLen C.int) C.ByteArray {
+	// 调用新API进行解密
+	return goRsaDecrypt(ciphertext, ciphertextLen, privateKey, privateKeyLen)
+}
+
+//export goFreeByteArray
+func goFreeByteArray(result C.ByteArray) {
 	freeByteArray(&result)
 }
 
-//export FreeRsaKeyPair_C
-func FreeRsaKeyPair_C(result C.RsaKeyPair) {
+//export goFreeRsaKeyPair
+func goFreeRsaKeyPair(result C.RsaKeyPair) {
 	freeRsaKeyPair(&result)
 }
 
-//export FreeStringResult_C
-func FreeStringResult_C(result C.StringResult) {
+//export goFreeStringResult
+func goFreeStringResult(result C.StringResult) {
 	freeStringResult(&result)
 }
 
-//export FreeBoolResult_C
-func FreeBoolResult_C(result C.BoolResult) {
+//export goFreeBoolResult
+func goFreeBoolResult(result C.BoolResult) {
 	freeBoolResult(&result)
 }
 

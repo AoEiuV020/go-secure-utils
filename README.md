@@ -57,7 +57,7 @@ C语言示例:
 
 int main() {
     // 生成RSA密钥对 (2048位)
-    ByteArray keyPair = GenerateRSAKeyPair_C(2048);
+    ByteArray keyPair = goGenerateRSAKeyPair(2048);
     if (keyPair.error != NULL) {
         printf("错误: %s\n", keyPair.error);
         FreeByteArray_C(keyPair);
@@ -69,7 +69,7 @@ int main() {
     int messageLen = strlen(message);
     
     // 加密
-    ByteArray encrypted = RSAEncrypt_C(keyPair.data, keyPair.length, 
+    ByteArray encrypted = goRSAEncrypt(keyPair.data, keyPair.length, 
                                       (byte*)message, messageLen);
     if (encrypted.error != NULL) {
         printf("加密错误: %s\n", encrypted.error);
@@ -79,7 +79,7 @@ int main() {
     }
     
     // 解密
-    ByteArray decrypted = RSADecrypt_C(keyPair.data, keyPair.length, 
+    ByteArray decrypted = goRSADecrypt(keyPair.data, keyPair.length, 
                                       encrypted.data, encrypted.length);
     if (decrypted.error != NULL) {
         printf("解密错误: %s\n", decrypted.error);
