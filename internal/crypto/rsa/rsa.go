@@ -53,10 +53,10 @@ func GenKeyPair(keySize int) (*RsaKeyPair, error) {
 
 // ExtractPublicKey extracts the public key from a private key.
 func ExtractPublicKey(privateKeyBytes []byte) ([]byte, error) {
-	// 尝试解析 PKCS1 格式的私钥
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBytes)
+	// 解析私钥
+	privateKey, err := parsePrivateKey(privateKeyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse PKCS1 private key: %w", err)
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
 
 	// 提取公钥并转换为 PKCS8 格式
@@ -66,6 +66,29 @@ func ExtractPublicKey(privateKeyBytes []byte) ([]byte, error) {
 	}
 
 	return publicKeyBytes, nil
+}
+
+// 解析私钥，支持PKCS1和PKCS8格式
+func parsePrivateKey(privateKeyBytes []byte) (*rsa.PrivateKey, error) {
+	// 先尝试解析 PKCS1 格式的私钥
+	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBytes)
+	if err == nil {
+		return privateKey, nil
+	}
+
+	// PKCS1 解析失败，尝试解析 PKCS8 格式
+	pkcs8PrivateKey, err2 := x509.ParsePKCS8PrivateKey(privateKeyBytes)
+	if err2 != nil {
+		return nil, fmt.Errorf("failed to parse private key as PKCS1 or PKCS8: %w, %w", err, err2)
+	}
+
+	// 转换为 RSA 私钥
+	rsaPrivateKey, ok := pkcs8PrivateKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("not an RSA private key")
+	}
+
+	return rsaPrivateKey, nil
 }
 
 // EncryptBase64 encrypts data with public key and returns base64 encoded result.
@@ -106,12 +129,12 @@ func DecryptFromBase64(encrypted string, privateKeyBytes []byte) ([]byte, error)
 // Decrypt decrypts data with private key.
 func Decrypt(encryptedData []byte, privateKeyBytes []byte) ([]byte, error) {
 	// 解析私钥
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBytes)
+	privateKey, err := parsePrivateKey(privateKeyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %w", err)
+		return nil, err
 	}
 
-	// 使用 PKCS1v15 进行解密
+	// 使用私钥进行解密
 	return rsa.DecryptPKCS1v15(rand.Reader, privateKey, encryptedData)
 }
 
@@ -127,30 +150,30 @@ func SignBase64(data string, privateKeyBytes []byte) (string, error) {
 // Sign signs data with private key using SHA-256.
 func Sign(data []byte, privateKeyBytes []byte) ([]byte, error) {
 	// 解析私钥
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBytes)
+	privateKey, err := parsePrivateKey(privateKeyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %w", err)
+		return nil, err
 	}
 
 	// 计算数据的 SHA-256 哈希
 	hashed := sha256.Sum256(data)
 
-	// 使用 PKCS1v15 进行签名
+	// 使用私钥进行签名
 	return rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed[:])
 }
 
 // SignSha1 signs data with private key using SHA-1 hash.
 func SignSha1(data []byte, privateKeyBytes []byte) ([]byte, error) {
 	// 解析私钥
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBytes)
+	privateKey, err := parsePrivateKey(privateKeyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %w", err)
+		return nil, err
 	}
 
 	// 计算数据的 SHA-1 哈希
 	hashed := sha1.Sum(data)
 
-	// 使用 PKCS1v15 进行签名
+	// 使用私钥进行签名
 	return rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA1, hashed[:])
 }
 
