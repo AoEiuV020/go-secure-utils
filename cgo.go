@@ -123,40 +123,41 @@ func goCBytes2GoSlice(data *C.byte, length C.int) []byte {
 // createStringResult 将字符串和错误封装为StringResult
 func createStringResult(data string, err error) C.StringResult {
 	var result C.StringResult
-	
+
 	if err != nil {
 		result.error = C.CString(err.Error())
 		result.data = nil
 		return result
 	}
-	
+
 	result.data = C.CString(data)
 	result.error = nil
-	
+
 	return result
 }
 
 // createBoolResult 将布尔值和错误封装为BoolResult
 func createBoolResult(success bool, err error) C.BoolResult {
 	var result C.BoolResult
-	
+
 	if err != nil {
 		result.error = C.CString(err.Error())
 		result.success = 0
 		return result
 	}
-	
+
 	if success {
 		result.success = 1
 	} else {
 		result.success = 0
 	}
 	result.error = nil
-	
+
 	return result
 }
 
 // RSA接口导出函数
+//
 //export goRsaGenKeyPair
 func goRsaGenKeyPair(bits C.int) C.RsaKeyPair {
 	var result C.RsaKeyPair
@@ -356,26 +357,6 @@ func goRsaVerifySha1(data *C.byte, dataLen C.int, publicKey *C.byte, publicKeyLe
 }
 
 // 内存管理函数导出
-
-//export goGenerateRSAKeyPair
-func goGenerateRSAKeyPair(bits C.int) C.ByteArray {
-	// 调用新API生成密钥对
-	keyPair := goRsaGenKeyPair(bits)
-	// 只返回私钥部分作为向后兼容
-	return keyPair.privateKey
-}
-
-//export goRSAEncrypt
-func goRSAEncrypt(publicKey *C.byte, publicKeyLen C.int, data *C.byte, dataLen C.int) C.ByteArray {
-	// 调用新API进行加密
-	return goRsaEncrypt(data, dataLen, publicKey, publicKeyLen)
-}
-
-//export goRSADecrypt
-func goRSADecrypt(privateKey *C.byte, privateKeyLen C.int, ciphertext *C.byte, ciphertextLen C.int) C.ByteArray {
-	// 调用新API进行解密
-	return goRsaDecrypt(ciphertext, ciphertextLen, privateKey, privateKeyLen)
-}
 
 //export goFreeByteArray
 func goFreeByteArray(result C.ByteArray) {

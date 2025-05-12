@@ -1,114 +1,65 @@
 # go-secure-utils
-Go语言加密工具库，支持纯Go调用和CGO接口
 
-## 功能
+Go语言高性能加密工具库，提供纯Go调用接口和CGO跨语言调用支持。
+
+## 功能特性
+
 - RSA 加密/解密
-- 更多功能开发中...
+- 跨平台支持 (Windows/Linux/macOS/Android/iOS)
+- 纯Go实现和CGO接口双重支持
+- 更多加密功能开发中...
 
 ## 使用方法
 
-### Go语言中使用
+### Go语言调用
 
-```go
-import (
-    "fmt"
-    cryptoutils "go-secure-utils"
-)
+直接导入包即可使用全部加密功能，
 
-func main() {
-    // 生成RSA密钥对
-    privateKey, publicKey, err := cryptoutils.GenerateRSAKeyPair(2048)
-    if err != nil {
-        panic(err)
-    }
-    
-    // 加密数据
-    message := []byte("需要加密的数据")
-    ciphertext, err := cryptoutils.RSAEncryptWithPublicKey(message, publicKey)
-    if err != nil {
-        panic(err)
-    }
-    
-    // 解密数据
-    decrypted, err := cryptoutils.RSADecryptWithPrivateKey(ciphertext, privateKey)
-    if err != nil {
-        panic(err)
-    }
-    
-    fmt.Printf("解密后的数据: %s\n", string(decrypted))
-}
-```
+### C/C++调用 (通过CGO)
 
-### C/C++中使用 (通过CGO)
+在`examples/c`目录中提供了完整的示例代码和编译脚本。
 
 编译共享库:
 
 ```bash
-go build -buildmode=c-shared -o libgo_secure_utils.so
+make
 ```
 
-C语言示例:
+C语言调用示例代码位于：[examples/c/rsa_example.c](examples/c/rsa_example.c)
 
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "go_secure_utils.h"
+## 编译指南
 
-int main() {
-    // 生成RSA密钥对 (2048位)
-    ByteArray keyPair = goGenerateRSAKeyPair(2048);
-    if (keyPair.error != NULL) {
-        printf("错误: %s\n", keyPair.error);
-        FreeByteArray_C(keyPair);
-        return 1;
-    }
-    
-    // 要加密的数据
-    const char* message = "需要加密的数据";
-    int messageLen = strlen(message);
-    
-    // 加密
-    ByteArray encrypted = goRSAEncrypt(keyPair.data, keyPair.length, 
-                                      (byte*)message, messageLen);
-    if (encrypted.error != NULL) {
-        printf("加密错误: %s\n", encrypted.error);
-        FreeByteArray_C(keyPair);
-        FreeByteArray_C(encrypted);
-        return 1;
-    }
-    
-    // 解密
-    ByteArray decrypted = goRSADecrypt(keyPair.data, keyPair.length, 
-                                      encrypted.data, encrypted.length);
-    if (decrypted.error != NULL) {
-        printf("解密错误: %s\n", decrypted.error);
-        FreeByteArray_C(keyPair);
-        FreeByteArray_C(encrypted);
-        FreeByteArray_C(decrypted);
-        return 1;
-    }
-    
-    // 打印解密结果
-    printf("解密后的数据: %.*s\n", decrypted.length, (char*)decrypted.data);
-    
-    // 释放内存
-    FreeByteArray_C(keyPair);
-    FreeByteArray_C(encrypted);
-    FreeByteArray_C(decrypted);
-    
-    return 0;
-}
-```
+### 一键编译所有平台
 
-## 编译
-
-### 编译Go库
 ```bash
-go build
+make
 ```
 
-### 编译共享库 (用于C/C++)
+### 按需编译特定平台
+
 ```bash
-go build -buildmode=c-shared -o libgo_secure_utils.so
+# 编译 Windows 平台库 (DLL)
+make windows
+
+# 编译 Linux 平台库 (.so)
+make linux
+
+# 编译 Android 平台库 (.so)
+make android
+
+# 编译 iOS 平台库 (.a)
+make ios
 ```
+
+## 示例程序
+
+查看 `examples` 目录获取各种语言的使用示例：
+
+### C语言示例
+```bash
+cd examples/c
+build_with_mingw.bat
+```
+
+### 其他语言
+陆续添加中...
