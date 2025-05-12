@@ -22,6 +22,8 @@ else
 endif
 
 NDK_BIN ?= $(subst \,/,$(ANDROID_HOME))/ndk/$(NDK_VERSION)/toolchains/llvm/prebuilt/$(NDK_PLATFORM)/bin
+# 使用通用的 wildcard 函数检查 NDK_BIN 是否存在
+NDK_EXISTS := $(if $(wildcard $(NDK_BIN)),true,false)
 
 # 根据目标名称设置平台路径
 LIB_PREFIX = lib
@@ -59,10 +61,16 @@ else
 		$(MAKE) linux
 	else ifeq ($(UNAME_S),Darwin)
 		$(MAKE) macos
+		# 在macOS上追加执行ios任务
+		$(MAKE) ios
 	else
 		$(error Unsupported OS for default build: $(UNAME_S))
 	endif
 endif
+	# 如果NDK存在，追加执行android任务（所有平台通用）
+	@if [ "$(NDK_EXISTS)" = "true" ]; then \
+		$(MAKE) android; \
+	fi
 
 # 设置 all 为默认目标
 .DEFAULT_GOAL := all
