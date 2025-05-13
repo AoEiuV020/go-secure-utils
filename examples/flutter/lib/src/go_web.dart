@@ -9,28 +9,12 @@ import 'dart:typed_data';
 @staticInterop
 class JSWindow {}
 
-/// JS Array类型
-@JS('Array')
-@staticInterop
-class JSArray {
-  external factory JSArray();
-  external factory JSArray.withLength(int length);
-}
-
-extension JSArrayExtension on JSArray {
-  @JS('length')
-  external int get length;
-
-  external JSAny operator [](int index);
-}
-
 /// JS上下文的响应类型
 extension JSResponseExtension on JSObject {
   // 检查是否为错误响应
   bool isErrorResponse() {
-    return this is JSObject &&
-        this.hasProperty('success') &&
-        this.hasProperty('error') &&
+    return hasProperty('success') &&
+        hasProperty('error') &&
         !(this as dynamic).success;
   }
 
