@@ -18,10 +18,13 @@ type Response struct {
 
 // 创建成功响应
 func successResponse(data interface{}) interface{} {
-	return map[string]interface{}{
-		"success": true,
-		"data":    data,
+	// 直接返回数据，而不是嵌套在data字段中
+	if data == nil {
+		return map[string]interface{}{
+			"success": true,
+		}
 	}
+	return data
 }
 
 // 创建错误响应
@@ -104,9 +107,10 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"publicKey":  RsaGetPublicKeyBase64(kp),
-			"privateKey": RsaGetPrivateKeyBase64(kp),
+		// 直接返回两个键作为数组 [公钥base64, 私钥base64]
+		return successResponse([]interface{}{
+			RsaGetPublicKeyBase64(kp),
+			RsaGetPrivateKeyBase64(kp),
 		})
 	}))
 
@@ -119,9 +123,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"publicKey": copyBytesToJS(publicKey),
-		})
+		// 直接返回公钥字节数组
+		return successResponse(copyBytesToJS(publicKey))
 	}))
 
 	// RSA加密（返回Base64编码结果）
@@ -134,9 +137,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"encrypted": encrypted,
-		})
+		// 直接返回加密后的Base64字符串
+		return successResponse(encrypted)
 	}))
 
 	// RSA加密（返回二进制结果）
@@ -149,9 +151,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"encrypted": copyBytesToJS(encrypted),
-		})
+		// 直接返回加密后的字节数组
+		return successResponse(copyBytesToJS(encrypted))
 	}))
 
 	// 从Base64解密RSA
@@ -164,9 +165,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"decrypted": copyBytesToJS(decrypted),
-		})
+		// 直接返回解密后的字节数组
+		return successResponse(copyBytesToJS(decrypted))
 	}))
 
 	// RSA解密
@@ -179,9 +179,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"decrypted": copyBytesToJS(decrypted),
-		})
+		// 直接返回解密后的字节数组
+		return successResponse(copyBytesToJS(decrypted))
 	}))
 
 	// RSA签名（返回Base64编码结果）
@@ -194,9 +193,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"signature": signature,
-		})
+		// 直接返回签名后的Base64字符串
+		return successResponse(signature)
 	}))
 
 	// RSA签名
@@ -209,9 +207,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"signature": copyBytesToJS(signature),
-		})
+		// 直接返回签名后的字节数组
+		return successResponse(copyBytesToJS(signature))
 	}))
 
 	// RSA SHA1签名
@@ -224,9 +221,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"signature": copyBytesToJS(signature),
-		})
+		// 直接返回签名后的字节数组
+		return successResponse(copyBytesToJS(signature))
 	}))
 
 	// 验证Base64编码的RSA签名
@@ -240,9 +236,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"verified": verified,
-		})
+		// 直接返回验证结果布尔值
+		return successResponse(verified)
 	}))
 
 	// 验证RSA签名
@@ -256,9 +251,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"verified": verified,
-		})
+		// 直接返回验证结果布尔值
+		return successResponse(verified)
 	}))
 
 	// 验证RSA SHA1签名
@@ -272,9 +266,8 @@ func registerRsaFunctions() {
 			return errorResponse(err)
 		}
 
-		return successResponse(map[string]interface{}{
-			"verified": verified,
-		})
+		// 直接返回验证结果布尔值
+		return successResponse(verified)
 	}))
 }
 

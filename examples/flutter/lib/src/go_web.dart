@@ -9,44 +9,46 @@ import 'dart:typed_data';
 @staticInterop
 class JSWindow {}
 
+/// JS Array类型
+@JS('Array')
+@staticInterop
+class JSArray {
+  external factory JSArray();
+  external factory JSArray.withLength(int length);
+}
+
+extension JSArrayExtension on JSArray {
+  @JS('length')
+  external int get length;
+
+  external JSAny operator [](int index);
+}
+
 /// JS上下文的响应类型
 extension JSResponseExtension on JSObject {
-  @JS('success')
-  external bool get success;
+  // 检查是否为错误响应
+  bool isErrorResponse() {
+    return this is JSObject &&
+        this.hasProperty('success') &&
+        this.hasProperty('error') &&
+        !(this as dynamic).success;
+  }
 
-  @JS('error')
-  external String? get error;
-
-  @JS('data')
-  external JSObject? get data;
+  // 获取错误消息（如果是错误响应）
+  String? getErrorMessage() {
+    if (isErrorResponse()) {
+      return (this as dynamic).error as String?;
+    }
+    return null;
+  }
 }
 
-/// JS数据对象
-@JS()
-@staticInterop
-class JSData {}
-
-extension JSDataExtension on JSData {
-  @JS('publicKey')
-  external String? get publicKey;
-  @JS('publicKey')
-  external JSUint8Array? get publicKeyArray;
-
-  @JS('privateKey')
-  external String? get privateKey;
-
-  @JS('encrypted')
-  external JSAny? get encrypted;
-
-  @JS('decrypted')
-  external JSAny? get decrypted;
-
-  @JS('signature')
-  external JSAny? get signature;
-
-  @JS('verified')
-  external bool? get verified;
+extension JSObjectExtension on JSObject {
+  @JS('hasOwnProperty')
+  external bool hasProperty(String name);
 }
+
+// 我们不再需要这个类和扩展
 
 /// JS中的Uint8Array类型
 @JS('Uint8Array')
@@ -121,21 +123,21 @@ extension JSWindowExtension on JSWindow {
   );
 
   @JS('goRsaVerifyFromBase64')
-  external JSPromise<JSObject> goRsaVerifyFromBase64(
+  external JSPromise<JSBoolean> goRsaVerifyFromBase64(
     String data,
     JSUint8Array publicKey,
     String signature,
   );
 
   @JS('goRsaVerify')
-  external JSPromise<JSObject> goRsaVerify(
+  external JSPromise<JSBoolean> goRsaVerify(
     JSUint8Array data,
     JSUint8Array publicKey,
     JSUint8Array signature,
   );
 
   @JS('goRsaVerifySha1')
-  external JSPromise<JSObject> goRsaVerifySha1(
+  external JSPromise<JSBoolean> goRsaVerifySha1(
     JSUint8Array data,
     JSUint8Array publicKey,
     JSUint8Array signature,
@@ -158,7 +160,7 @@ JSUint8Array uint8ListToJS(Uint8List bytes) {
 }
 
 /// 将JS的Uint8Array转换为Dart的Uint8List
-Uint8List jsUint8ArrayToDart(JSAny jsArray) {
+Uint8List jsUint8ArrayToDart(Object jsArray) {
   // 确保参数是JSUint8Array类型
   final array = jsArray as JSUint8Array;
   final length = array.length;
@@ -188,32 +190,40 @@ Future<void> waitForWasmReady() async {
 }
 
 /// 处理JS响应
-T processJSResponse<T>(JSObject response, T Function(JSData) dataExtractor) {
-  if (!response.success) {
-    final error = response.error;
+T processJSResponse<T>(JSObject response, T Function(dynamic) dataProcessor) {
+  // 检查是否为错误响应对象
+  if (response.isErrorResponse()) {
+    final error = response.getErrorMessage();
     throw Exception(error ?? '未知错误');
   }
 
-  final data = response.data;
-  if (data == null) {
-    throw Exception('响应数据为空');
-  }
-
-  return dataExtractor(data as JSData);
+  // 直接将响应作为数据处理
+  return dataProcessor(response);
 }
 
-/// 处理Uint8Array类型响应
-Uint8List processUint8ArrayResult(JSObject response, String fieldName) {
+/// 处理返回的Uint8Array
+Uint8List processDirectUint8Array(JSObject response) {
   return processJSResponse<Uint8List>(response, (data) {
-    final value =
-        fieldName == 'encrypted'
-            ? data.encrypted
-            : (fieldName == 'decrypted' ? data.decrypted : data.signature);
+    return jsUint8ArrayToDart(data as JSUint8Array);
+  });
+}
 
-    if (value == null) {
-      throw Exception('响应中缺少字段: $fieldName');
+/// 处理返回的字符串
+String processDirectString(JSObject response) {
+  return processJSResponse<String>(response, (data) {
+    if (data is! String) {
+      throw Exception('响应不是有效的字符串');
     }
+    return data;
+  });
+}
 
-    return jsUint8ArrayToDart(value);
+/// 处理返回的布尔值
+bool processDirectBoolean(JSObject response) {
+  return processJSResponse<bool>(response, (data) {
+    if (data is! bool) {
+      throw Exception('响应不是有效的布尔值');
+    }
+    return data;
   });
 }

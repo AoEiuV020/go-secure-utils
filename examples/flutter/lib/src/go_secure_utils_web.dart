@@ -33,15 +33,21 @@ Future<RsaKeyPairData> genKeyPair(int keySize) async {
     final response = await jsWindow.goRsaGenKeyPair(keySize).toDart;
 
     return processJSResponse<RsaKeyPairData>(response, (data) {
-      final publicKeyBase64 = data.publicKey;
-      final privateKeyBase64 = data.privateKey;
-
-      if (publicKeyBase64 == null || privateKeyBase64 == null) {
+      // 预期返回一个数组 [publicKeyBase64, privateKeyBase64]
+      final jsArray = data as JSArray;
+      if (jsArray.length < 2) {
         throw GoSecureUtilsException('生成密钥对失败：响应数据不完整');
       }
 
-      final publicKey = base64Decode(publicKeyBase64);
-      final privateKey = base64Decode(privateKeyBase64);
+      final publicKeyBase64 = jsArray[0];
+      final privateKeyBase64 = jsArray[1];
+
+      if (publicKeyBase64 == null || privateKeyBase64 == null) {
+        throw GoSecureUtilsException('生成密钥对失败：数据为空');
+      }
+
+      final publicKey = base64Decode(publicKeyBase64.toString());
+      final privateKey = base64Decode(privateKeyBase64.toString());
 
       return RsaKeyPairData(publicKey, privateKey);
     });
@@ -57,14 +63,8 @@ Future<Uint8List> extractPublicKey(Uint8List privateKey) async {
     final jsPrivateKey = uint8ListToJS(privateKey);
     final response = await jsWindow.goRsaExtractPublicKey(jsPrivateKey).toDart;
 
-    return processJSResponse<Uint8List>(response, (data) {
-      final publicKey = data.publicKeyArray;
-      if (publicKey == null) {
-        throw GoSecureUtilsException('提取公钥失败：响应数据不完整');
-      }
-
-      return jsUint8ArrayToDart(publicKey as JSAny);
-    });
+    // 直接返回Uint8Array
+    return processDirectUint8Array(response);
   });
 }
 
@@ -91,7 +91,7 @@ Future<Uint8List> encrypt(Uint8List data, Uint8List publicKey) async {
     final jsPublicKey = uint8ListToJS(publicKey);
 
     final response = await jsWindow.goRsaEncrypt(jsData, jsPublicKey).toDart;
-    return processUint8ArrayResult(response, 'encrypted');
+    return processDirectUint8Array(response);
   });
 }
 
@@ -108,14 +108,7 @@ Future<String> encryptToBase64(Uint8List data, Uint8List publicKey) async {
     final response =
         await jsWindow.goRsaEncryptBase64(jsData, jsPublicKey).toDart;
 
-    return processJSResponse<String>(response, (data) {
-      final encrypted = data.encrypted;
-      if (encrypted == null) {
-        throw GoSecureUtilsException('加密失败：响应数据不完整');
-      }
-
-      return encrypted.toString();
-    });
+    return processDirectString(response);
   });
 }
 
@@ -131,7 +124,7 @@ Future<Uint8List> decrypt(Uint8List encryptedData, Uint8List privateKey) async {
 
     final response =
         await jsWindow.goRsaDecrypt(jsEncryptedData, jsPrivateKey).toDart;
-    return processUint8ArrayResult(response, 'decrypted');
+    return processDirectUint8Array(response);
   });
 }
 
@@ -151,7 +144,7 @@ Future<Uint8List> decryptFromBase64(
         await jsWindow
             .goRsaDecryptFromBase64(encryptedBase64, jsPrivateKey)
             .toDart;
-    return processUint8ArrayResult(response, 'decrypted');
+    return processDirectUint8Array(response);
   });
 }
 
@@ -166,7 +159,7 @@ Future<Uint8List> sign(Uint8List data, Uint8List privateKey) async {
     final jsPrivateKey = uint8ListToJS(privateKey);
 
     final response = await jsWindow.goRsaSign(jsData, jsPrivateKey).toDart;
-    return processUint8ArrayResult(response, 'signature');
+    return processDirectUint8Array(response);
   });
 }
 
@@ -180,15 +173,7 @@ Future<String> signBase64(String data, Uint8List privateKey) async {
     final jsPrivateKey = uint8ListToJS(privateKey);
 
     final response = await jsWindow.goRsaSignBase64(data, jsPrivateKey).toDart;
-
-    return processJSResponse<String>(response, (data) {
-      final signature = data.signature;
-      if (signature == null) {
-        throw GoSecureUtilsException('签名失败：响应数据不完整');
-      }
-
-      return signature.toString();
-    });
+    return processDirectString(response);
   });
 }
 
@@ -203,7 +188,7 @@ Future<Uint8List> signSha1(Uint8List data, Uint8List privateKey) async {
     final jsPrivateKey = uint8ListToJS(privateKey);
 
     final response = await jsWindow.goRsaSignSha1(jsData, jsPrivateKey).toDart;
-    return processUint8ArrayResult(response, 'signature');
+    return processDirectUint8Array(response);
   });
 }
 
@@ -225,15 +210,7 @@ Future<bool> verify(
 
     final response =
         await jsWindow.goRsaVerify(jsData, jsPublicKey, jsSignature).toDart;
-
-    return processJSResponse<bool>(response, (data) {
-      final verified = data.verified;
-      if (verified == null) {
-        throw GoSecureUtilsException('验证签名失败：响应数据不完整');
-      }
-
-      return verified;
-    });
+    return response.toDart;
   });
 }
 
@@ -255,15 +232,7 @@ Future<bool> verifyFromBase64(
         await jsWindow
             .goRsaVerifyFromBase64(data, jsPublicKey, signatureBase64)
             .toDart;
-
-    return processJSResponse<bool>(response, (data) {
-      final verified = data.verified;
-      if (verified == null) {
-        throw GoSecureUtilsException('验证签名失败：响应数据不完整');
-      }
-
-      return verified;
-    });
+    return response.toDart;
   });
 }
 
@@ -285,14 +254,6 @@ Future<bool> verifySha1(
 
     final response =
         await jsWindow.goRsaVerifySha1(jsData, jsPublicKey, jsSignature).toDart;
-
-    return processJSResponse<bool>(response, (data) {
-      final verified = data.verified;
-      if (verified == null) {
-        throw GoSecureUtilsException('验证SHA1签名失败：响应数据不完整');
-      }
-
-      return verified;
-    });
+    return response.toDart;
   });
 }
