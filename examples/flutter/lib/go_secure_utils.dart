@@ -1,7 +1,11 @@
+// ignore_for_file: await_only_futures
+
 import 'dart:typed_data';
 import 'dart:convert';
 
-import 'src/go_secure_utils_web.dart' as io;
+import 'src/go_secure_utils_io.dart'
+    if (dart.library.html) 'src/go_secure_utils_web.dart'
+    as io;
 import 'src/go_secure_utils_models.dart';
 
 export 'src/go_secure_utils_models.dart';
