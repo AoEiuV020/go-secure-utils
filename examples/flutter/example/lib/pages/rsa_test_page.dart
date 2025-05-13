@@ -161,9 +161,9 @@ class _RsaTestPageState extends State<RsaTestPage> {
     );
   }
 
-  void _extractPublicKey() {
+  void _extractPublicKey() async {
     try {
-      final publicKey = RSA.extractPublicKey(
+      final publicKey = await RSA.extractPublicKey(
         base64Decode(_privateKeyController.text),
       );
       _publicKeyController.text = base64Encode(publicKey);
@@ -172,9 +172,9 @@ class _RsaTestPageState extends State<RsaTestPage> {
     }
   }
 
-  void _encrypt() {
+  void _encrypt() async {
     try {
-      final cipherText = RSA.encrypt(
+      final cipherText = await RSA.encrypt(
         base64Decode(_plainBase64Controller.text),
         base64Decode(_publicKeyController.text),
       );
@@ -184,9 +184,9 @@ class _RsaTestPageState extends State<RsaTestPage> {
     }
   }
 
-  void _decrypt() {
+  void _decrypt() async {
     try {
-      final plainText = RSA.decrypt(
+      final plainText = await RSA.decrypt(
         base64Decode(_cipherTextController.text),
         base64Decode(_privateKeyController.text),
       );
@@ -196,9 +196,9 @@ class _RsaTestPageState extends State<RsaTestPage> {
     }
   }
 
-  void _sign() {
+  void _sign() async {
     try {
-      final signature = RSA.sign(
+      final signature = await RSA.sign(
         base64Decode(_plainBase64Controller.text),
         base64Decode(_privateKeyController.text),
       );
@@ -209,9 +209,9 @@ class _RsaTestPageState extends State<RsaTestPage> {
     setState(() => _isValid = null);
   }
 
-  void _verify() {
+  void _verify() async {
     try {
-      final isValid = RSA.verify(
+      final isValid = await RSA.verify(
         base64Decode(_plainBase64Controller.text),
         base64Decode(_publicKeyController.text),
         base64Decode(_signController.text),
@@ -223,9 +223,9 @@ class _RsaTestPageState extends State<RsaTestPage> {
     }
   }
 
-  void _generateKeyPair() {
+  void _generateKeyPair() async {
     try {
-      final keyPair = RSA.genKeyPair();
+      final keyPair = await RSA.genKeyPair();
       _privateKeyController.text = base64Encode(keyPair.privateKey);
       _publicKeyController.text = base64Encode(keyPair.publicKey);
     } catch (e) {
