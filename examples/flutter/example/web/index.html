@@ -31,10 +31,10 @@
 
   <title>go_secure_utils_example</title>
   <link rel="manifest" href="manifest.json">
-  <script src="wasm_exec.js"></script>
+  <script src="prebuild/wasm_exec.js"></script>
   <script>
     const go = new Go();
-    WebAssembly.instantiateStreaming(fetch("libgo_secure_utils.wasm"), go.importObject).then((result) => {
+    WebAssembly.instantiateStreaming(fetch("prebuild/libgo_secure_utils.wasm"), go.importObject).then((result) => {
       go.run(result.instance);
     });
   </script>
