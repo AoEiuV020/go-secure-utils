@@ -1,6 +1,18 @@
 PROJECT_NAME := go_secure_utils
 PREBUILD_BASE := build/prebuild
 
+# 构建模式设置，默认为release模式
+BUILD_MODE ?= release
+
+# 根据构建模式设置Go构建参数
+ifeq ($(BUILD_MODE),debug)
+	# Debug模式：保留调试信息
+	GO_BUILD_FLAGS := -gcflags="all=-N -l"
+else
+	# Release模式：优化体积
+	GO_BUILD_FLAGS := -trimpath -ldflags="-s -w" 
+endif
+
 NDK_VERSION ?= 27.0.12077973
 # 检测操作系统类型
 ifeq ($(OS),Windows_NT)
@@ -49,7 +61,7 @@ PREBUILD_PATH = $(PREBUILD_BASE)/$(PLATFORM)
 LIB_NAME := $(LIB_PREFIX)$(PROJECT_NAME)
 
 # 添加默认目标，根据系统类型自动选择目标
-.PHONY: all
+.PHONY: release
 all:
 ifeq ($(OS),Windows_NT)
 	$(MAKE) windows
@@ -69,6 +81,14 @@ endif
 	# 追加执行web任务（所有平台通用）
 	$(MAKE) web
 
+# 添加debug目标
+debug:
+	$(MAKE) BUILD_MODE=debug all
+
+# 添加release目标
+release:
+	$(MAKE) BUILD_MODE=release all
+
 # 设置 all 为默认目标
 .DEFAULT_GOAL := all
 
@@ -79,7 +99,7 @@ android-armv7a:
 	GOARCH=arm \
 	GOARM=7 \
 	CC=$(NDK_BIN)/armv7a-linux-androideabi21-clang \
-	go build -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
+	go build $(GO_BUILD_FLAGS) -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
 	rm $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.h
 
 android-arm64: CURRENT_ARCH := arm64-v8a
@@ -88,7 +108,7 @@ android-arm64:
 	GOOS=android \
 	GOARCH=arm64 \
 	CC=$(NDK_BIN)/aarch64-linux-android21-clang \
-	go build -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
+	go build $(GO_BUILD_FLAGS) -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
 	rm $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.h
 
 android-x86: CURRENT_ARCH := x86
@@ -97,7 +117,7 @@ android-x86:
 	GOOS=android \
 	GOARCH=386 \
 	CC=$(NDK_BIN)/i686-linux-android21-clang \
-	go build -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
+	go build $(GO_BUILD_FLAGS) -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
 	rm $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.h
 
 android-x86_64: CURRENT_ARCH := x86_64
@@ -106,7 +126,7 @@ android-x86_64:
 	GOOS=android \
 	GOARCH=amd64 \
 	CC=$(NDK_BIN)/x86_64-linux-android21-clang \
-	go build -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
+	go build $(GO_BUILD_FLAGS) -buildmode=c-shared -o $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.so .
 	rm $(PREBUILD_PATH)/$(CURRENT_ARCH)/${LIB_NAME}.h
 
 android: android-armv7a android-arm64 android-x86 android-x86_64
@@ -116,6 +136,7 @@ ios-x86_64-sim:
 	SDK=iphonesimulator \
 	LIB_NAME=${LIB_NAME} \
 	PREBUILD_PATH=${PREBUILD_PATH} \
+	GO_BUILD_FLAGS="$(GO_BUILD_FLAGS)" \
 	./build_ios.sh
 
 ios-arm64-sim:
@@ -123,6 +144,7 @@ ios-arm64-sim:
 	SDK=iphonesimulator \
 	LIB_NAME=${LIB_NAME} \
 	PREBUILD_PATH=${PREBUILD_PATH} \
+	GO_BUILD_FLAGS="$(GO_BUILD_FLAGS)" \
 	./build_ios.sh
 
 ios-arm64:
@@ -130,6 +152,7 @@ ios-arm64:
 	SDK=iphoneos \
 	LIB_NAME=${LIB_NAME} \
 	PREBUILD_PATH=${PREBUILD_PATH} \
+	GO_BUILD_FLAGS="$(GO_BUILD_FLAGS)" \
 	./build_ios.sh
 
 ios: ios-x86_64-sim ios-arm64-sim ios-arm64
@@ -138,12 +161,14 @@ macos-arm64:
 	GOARCH=arm64 \
 	LIB_NAME=${LIB_NAME} \
 	PREBUILD_PATH=${PREBUILD_PATH} \
+	GO_BUILD_FLAGS="$(GO_BUILD_FLAGS)" \
 	./build_mac.sh
 
 macos-amd64:
 	GOARCH=amd64 \
 	LIB_NAME=${LIB_NAME} \
 	PREBUILD_PATH=${PREBUILD_PATH} \
+	GO_BUILD_FLAGS="$(GO_BUILD_FLAGS)" \
 	./build_mac.sh
 
 macos-universal: macos-arm64 macos-amd64
@@ -162,18 +187,18 @@ windows:
 	CGO_ENABLED=1 \
 	GOOS=windows \
 	GOARCH=amd64 \
-	go build -trimpath -buildmode=c-shared -o ${PREBUILD_PATH}/AMD64/${LIB_NAME}.dll .
+	go build $(GO_BUILD_FLAGS) -buildmode=c-shared -o ${PREBUILD_PATH}/AMD64/${LIB_NAME}.dll .
 	rm ${PREBUILD_PATH}/AMD64/${LIB_NAME}.h
 
 linux:
 	CGO_ENABLED=1 \
 	GOOS=linux \
 	GOARCH=amd64 \
-	go build -trimpath -buildmode=c-shared -o ${PREBUILD_PATH}/x86_64/${LIB_NAME}.so .
+	go build $(GO_BUILD_FLAGS) -buildmode=c-shared -o ${PREBUILD_PATH}/x86_64/${LIB_NAME}.so .
 	rm ${PREBUILD_PATH}/x86_64/${LIB_NAME}.h
 
 web:
 	GOOS=js \
 	GOARCH=wasm \
-	go build -o ${PREBUILD_PATH}/${LIB_NAME}.wasm .
+	go build $(GO_BUILD_FLAGS) -o ${PREBUILD_PATH}/${LIB_NAME}.wasm .
 	cp "$(shell go env GOROOT)/lib/wasm/wasm_exec.js" ${PREBUILD_PATH}/
