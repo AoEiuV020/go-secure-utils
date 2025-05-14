@@ -26,14 +26,14 @@ class RSA {
 
   /// 获取Base64编码的公钥
   /// [publicKey] 公钥数据
-  static String getPublicKeyBase64(Uint8List publicKey) {
-    return io.getPublicKeyBase64(publicKey);
+  static Future<String> getPublicKeyBase64(Uint8List publicKey) async {
+    return await io.getPublicKeyBase64(publicKey);
   }
 
   /// 获取Base64编码的私钥
   /// [privateKey] 私钥数据
-  static String getPrivateKeyBase64(Uint8List privateKey) {
-    return io.getPrivateKeyBase64(privateKey);
+  static Future<String> getPrivateKeyBase64(Uint8List privateKey) async {
+    return await io.getPrivateKeyBase64(privateKey);
   }
 
   /// 使用公钥加密数据

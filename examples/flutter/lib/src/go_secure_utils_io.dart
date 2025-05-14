@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
@@ -6,6 +7,7 @@ import 'package:ffi/ffi.dart';
 
 import 'go_secure_utils_bindings_generated.dart';
 import 'go_secure_utils_models.dart';
+import 'isolate_helper.dart';
 
 /// 动态库的名称
 const String _libName = 'go_secure_utils';
@@ -111,269 +113,383 @@ RsaKeyPairData _processAndFreeRsaKeyPair(RsaKeyPair result) {
 
 /// 生成RSA密钥对
 /// [bits] 密钥长度，通常为2048或4096
-RsaKeyPairData genKeyPair(int bits) {
-  final result = _bindings.goRsaGenKeyPair(bits);
-  return _processAndFreeRsaKeyPair(result);
+Future<RsaKeyPairData> genKeyPair(int bits) async {
+  final helper = IsolateHelper<int, RsaKeyPairData>((input) {
+    final result = _bindings.goRsaGenKeyPair(input);
+    return _processAndFreeRsaKeyPair(result);
+  });
+  
+  return helper.execute(bits);
 }
 
 /// 从私钥中提取公钥
 /// [privateKey] 私钥数据
-Uint8List extractPublicKey(Uint8List privateKey) {
-  final privateKeyPtr = _uint8ListToPointer(privateKey);
-  try {
-    final result = _bindings.goRsaExtractPublicKey(
-      privateKeyPtr,
-      privateKey.length,
-    );
-    return _processAndFreeByteArray(result);
-  } finally {
-    calloc.free(privateKeyPtr);
-  }
+Future<Uint8List> extractPublicKey(Uint8List privateKey) async {
+  final helper = IsolateHelper<Uint8List, Uint8List>((input) {
+    final privateKeyPtr = _uint8ListToPointer(input);
+    try {
+      final result = _bindings.goRsaExtractPublicKey(
+        privateKeyPtr,
+        input.length,
+      );
+      return _processAndFreeByteArray(result);
+    } finally {
+      calloc.free(privateKeyPtr);
+    }
+  });
+  
+  return helper.execute(privateKey);
 }
 
 /// 获取Base64编码的公钥
 /// [publicKey] 公钥数据
-String getPublicKeyBase64(Uint8List publicKey) {
-  final publicKeyPtr = _uint8ListToPointer(publicKey);
-  try {
-    final result = _bindings.goRsaGetPublicKeyBase64(
-      publicKeyPtr,
-      publicKey.length,
-    );
-    return _processAndFreeStringResult(result);
-  } finally {
-    calloc.free(publicKeyPtr);
-  }
+Future<String> getPublicKeyBase64(Uint8List publicKey) async {
+  final helper = IsolateHelper<Uint8List, String>((input) {
+    final publicKeyPtr = _uint8ListToPointer(input);
+    try {
+      final result = _bindings.goRsaGetPublicKeyBase64(
+        publicKeyPtr,
+        input.length,
+      );
+      return _processAndFreeStringResult(result);
+    } finally {
+      calloc.free(publicKeyPtr);
+    }
+  });
+  
+  return helper.execute(publicKey);
 }
 
 /// 获取Base64编码的私钥
 /// [privateKey] 私钥数据
-String getPrivateKeyBase64(Uint8List privateKey) {
-  final privateKeyPtr = _uint8ListToPointer(privateKey);
-  try {
-    final result = _bindings.goRsaGetPrivateKeyBase64(
-      privateKeyPtr,
-      privateKey.length,
-    );
-    return _processAndFreeStringResult(result);
-  } finally {
-    calloc.free(privateKeyPtr);
-  }
+Future<String> getPrivateKeyBase64(Uint8List privateKey) async {
+  final helper = IsolateHelper<Uint8List, String>((input) {
+    final privateKeyPtr = _uint8ListToPointer(input);
+    try {
+      final result = _bindings.goRsaGetPrivateKeyBase64(
+        privateKeyPtr,
+        input.length,
+      );
+      return _processAndFreeStringResult(result);
+    } finally {
+      calloc.free(privateKeyPtr);
+    }
+  });
+  
+  return helper.execute(privateKey);
+}
+
+/// 使用公钥加密数据参数
+class EncryptParams {
+  final Uint8List data;
+  final Uint8List publicKey;
+  
+  EncryptParams(this.data, this.publicKey);
 }
 
 /// 使用公钥加密数据
 /// [data] 要加密的数据
 /// [publicKey] 公钥
-Uint8List encrypt(Uint8List data, Uint8List publicKey) {
-  final dataPtr = _uint8ListToPointer(data);
-  final publicKeyPtr = _uint8ListToPointer(publicKey);
-  try {
-    final result = _bindings.goRsaEncrypt(
-      dataPtr,
-      data.length,
-      publicKeyPtr,
-      publicKey.length,
-    );
-    return _processAndFreeByteArray(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(publicKeyPtr);
-  }
+Future<Uint8List> encrypt(Uint8List data, Uint8List publicKey) async {
+  final helper = IsolateHelper<EncryptParams, Uint8List>((input) {
+    final dataPtr = _uint8ListToPointer(input.data);
+    final publicKeyPtr = _uint8ListToPointer(input.publicKey);
+    try {
+      final result = _bindings.goRsaEncrypt(
+        dataPtr,
+        input.data.length,
+        publicKeyPtr,
+        input.publicKey.length,
+      );
+      return _processAndFreeByteArray(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(publicKeyPtr);
+    }
+  });
+  
+  return helper.execute(EncryptParams(data, publicKey));
 }
 
 /// 使用公钥加密数据并返回Base64编码的结果
 /// [data] 要加密的数据
 /// [publicKey] 公钥
-String encryptToBase64(Uint8List data, Uint8List publicKey) {
-  final dataPtr = _uint8ListToPointer(data);
-  final publicKeyPtr = _uint8ListToPointer(publicKey);
-  try {
-    final result = _bindings.goRsaEncryptBase64(
-      dataPtr,
-      data.length,
-      publicKeyPtr,
-      publicKey.length,
-    );
-    return _processAndFreeStringResult(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(publicKeyPtr);
-  }
+Future<String> encryptToBase64(Uint8List data, Uint8List publicKey) async {
+  final helper = IsolateHelper<EncryptParams, String>((input) {
+    final dataPtr = _uint8ListToPointer(input.data);
+    final publicKeyPtr = _uint8ListToPointer(input.publicKey);
+    try {
+      final result = _bindings.goRsaEncryptBase64(
+        dataPtr,
+        input.data.length,
+        publicKeyPtr,
+        input.publicKey.length,
+      );
+      return _processAndFreeStringResult(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(publicKeyPtr);
+    }
+  });
+  
+  return helper.execute(EncryptParams(data, publicKey));
+}
+
+/// 使用私钥解密数据参数
+class DecryptParams {
+  final Uint8List encryptedData;
+  final Uint8List privateKey;
+  
+  DecryptParams(this.encryptedData, this.privateKey);
 }
 
 /// 使用私钥解密数据
 /// [encryptedData] 加密后的数据
 /// [privateKey] 私钥
-Uint8List decrypt(Uint8List encryptedData, Uint8List privateKey) {
-  final encryptedDataPtr = _uint8ListToPointer(encryptedData);
-  final privateKeyPtr = _uint8ListToPointer(privateKey);
-  try {
-    final result = _bindings.goRsaDecrypt(
-      encryptedDataPtr,
-      encryptedData.length,
-      privateKeyPtr,
-      privateKey.length,
-    );
-    return _processAndFreeByteArray(result);
-  } finally {
-    calloc.free(encryptedDataPtr);
-    calloc.free(privateKeyPtr);
-  }
+Future<Uint8List> decrypt(Uint8List encryptedData, Uint8List privateKey) async {
+  final helper = IsolateHelper<DecryptParams, Uint8List>((input) {
+    final encryptedDataPtr = _uint8ListToPointer(input.encryptedData);
+    final privateKeyPtr = _uint8ListToPointer(input.privateKey);
+    try {
+      final result = _bindings.goRsaDecrypt(
+        encryptedDataPtr,
+        input.encryptedData.length,
+        privateKeyPtr,
+        input.privateKey.length,
+      );
+      return _processAndFreeByteArray(result);
+    } finally {
+      calloc.free(encryptedDataPtr);
+      calloc.free(privateKeyPtr);
+    }
+  });
+  
+  return helper.execute(DecryptParams(encryptedData, privateKey));
+}
+
+/// 从Base64解密参数
+class DecryptFromBase64Params {
+  final String encryptedBase64;
+  final Uint8List privateKey;
+  
+  DecryptFromBase64Params(this.encryptedBase64, this.privateKey);
 }
 
 /// 解密Base64编码的加密数据
 /// [encryptedBase64] Base64编码的加密数据
 /// [privateKey] 私钥
-Uint8List decryptFromBase64(String encryptedBase64, Uint8List privateKey) {
-  final encryptedBase64Ptr = _stringToNative(encryptedBase64);
-  final privateKeyPtr = _uint8ListToPointer(privateKey);
-  try {
-    final result = _bindings.goRsaDecryptFromBase64(
-      encryptedBase64Ptr,
-      privateKeyPtr,
-      privateKey.length,
-    );
-    return _processAndFreeByteArray(result);
-  } finally {
-    calloc.free(encryptedBase64Ptr);
-    calloc.free(privateKeyPtr);
-  }
+Future<Uint8List> decryptFromBase64(String encryptedBase64, Uint8List privateKey) async {
+  final helper = IsolateHelper<DecryptFromBase64Params, Uint8List>((input) {
+    final encryptedBase64Ptr = _stringToNative(input.encryptedBase64);
+    final privateKeyPtr = _uint8ListToPointer(input.privateKey);
+    try {
+      final result = _bindings.goRsaDecryptFromBase64(
+        encryptedBase64Ptr,
+        privateKeyPtr,
+        input.privateKey.length,
+      );
+      return _processAndFreeByteArray(result);
+    } finally {
+      calloc.free(encryptedBase64Ptr);
+      calloc.free(privateKeyPtr);
+    }
+  });
+  
+  return helper.execute(DecryptFromBase64Params(encryptedBase64, privateKey));
+}
+
+/// 签名参数
+class SignParams {
+  final Uint8List data;
+  final Uint8List privateKey;
+  
+  SignParams(this.data, this.privateKey);
 }
 
 /// 使用私钥对数据进行签名
 /// [data] 要签名的数据
 /// [privateKey] 私钥
-Uint8List sign(Uint8List data, Uint8List privateKey) {
-  final dataPtr = _uint8ListToPointer(data);
-  final privateKeyPtr = _uint8ListToPointer(privateKey);
-  try {
-    final result = _bindings.goRsaSign(
-      dataPtr,
-      data.length,
-      privateKeyPtr,
-      privateKey.length,
-    );
-    return _processAndFreeByteArray(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(privateKeyPtr);
-  }
+Future<Uint8List> sign(Uint8List data, Uint8List privateKey) async {
+  final helper = IsolateHelper<SignParams, Uint8List>((input) {
+    final dataPtr = _uint8ListToPointer(input.data);
+    final privateKeyPtr = _uint8ListToPointer(input.privateKey);
+    try {
+      final result = _bindings.goRsaSign(
+        dataPtr,
+        input.data.length,
+        privateKeyPtr,
+        input.privateKey.length,
+      );
+      return _processAndFreeByteArray(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(privateKeyPtr);
+    }
+  });
+  
+  return helper.execute(SignParams(data, privateKey));
+}
+
+/// 字符串签名参数
+class SignStringParams {
+  final String data;
+  final Uint8List privateKey;
+  
+  SignStringParams(this.data, this.privateKey);
 }
 
 /// 使用私钥对字符串数据进行签名并返回Base64编码的结果
 /// [data] 要签名的字符串数据
 /// [privateKey] 私钥
-String signBase64(String data, Uint8List privateKey) {
-  final dataPtr = _stringToNative(data);
-  final privateKeyPtr = _uint8ListToPointer(privateKey);
-  try {
-    final result = _bindings.goRsaSignBase64(
-      dataPtr,
-      privateKeyPtr,
-      privateKey.length,
-    );
-    return _processAndFreeStringResult(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(privateKeyPtr);
-  }
+Future<String> signBase64(String data, Uint8List privateKey) async {
+  final helper = IsolateHelper<SignStringParams, String>((input) {
+    final dataPtr = _stringToNative(input.data);
+    final privateKeyPtr = _uint8ListToPointer(input.privateKey);
+    try {
+      final result = _bindings.goRsaSignBase64(
+        dataPtr,
+        privateKeyPtr,
+        input.privateKey.length,
+      );
+      return _processAndFreeStringResult(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(privateKeyPtr);
+    }
+  });
+  
+  return helper.execute(SignStringParams(data, privateKey));
 }
 
 /// 使用SHA1哈希算法和私钥对数据进行签名
 /// [data] 要签名的数据
 /// [privateKey] 私钥
-Uint8List signSha1(Uint8List data, Uint8List privateKey) {
-  final dataPtr = _uint8ListToPointer(data);
-  final privateKeyPtr = _uint8ListToPointer(privateKey);
-  try {
-    final result = _bindings.goRsaSignSha1(
-      dataPtr,
-      data.length,
-      privateKeyPtr,
-      privateKey.length,
-    );
-    return _processAndFreeByteArray(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(privateKeyPtr);
-  }
+Future<Uint8List> signSha1(Uint8List data, Uint8List privateKey) async {
+  final helper = IsolateHelper<SignParams, Uint8List>((input) {
+    final dataPtr = _uint8ListToPointer(input.data);
+    final privateKeyPtr = _uint8ListToPointer(input.privateKey);
+    try {
+      final result = _bindings.goRsaSignSha1(
+        dataPtr,
+        input.data.length,
+        privateKeyPtr,
+        input.privateKey.length,
+      );
+      return _processAndFreeByteArray(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(privateKeyPtr);
+    }
+  });
+  
+  return helper.execute(SignParams(data, privateKey));
+}
+
+/// 验证参数
+class VerifyParams {
+  final Uint8List data;
+  final Uint8List publicKey;
+  final Uint8List signature;
+  
+  VerifyParams(this.data, this.publicKey, this.signature);
 }
 
 /// 验证签名
 /// [data] 原始数据
 /// [publicKey] 公钥
 /// [signature] 签名数据
-bool verify(Uint8List data, Uint8List publicKey, Uint8List signature) {
-  final dataPtr = _uint8ListToPointer(data);
-  final publicKeyPtr = _uint8ListToPointer(publicKey);
-  final signaturePtr = _uint8ListToPointer(signature);
-  try {
-    final result = _bindings.goRsaVerify(
-      dataPtr,
-      data.length,
-      publicKeyPtr,
-      publicKey.length,
-      signaturePtr,
-      signature.length,
-    );
-    return _processAndFreeBoolResult(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(publicKeyPtr);
-    calloc.free(signaturePtr);
-  }
+Future<bool> verify(Uint8List data, Uint8List publicKey, Uint8List signature) async {
+  final helper = IsolateHelper<VerifyParams, bool>((input) {
+    final dataPtr = _uint8ListToPointer(input.data);
+    final publicKeyPtr = _uint8ListToPointer(input.publicKey);
+    final signaturePtr = _uint8ListToPointer(input.signature);
+    try {
+      final result = _bindings.goRsaVerify(
+        dataPtr,
+        input.data.length,
+        publicKeyPtr,
+        input.publicKey.length,
+        signaturePtr,
+        input.signature.length,
+      );
+      return _processAndFreeBoolResult(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(publicKeyPtr);
+      calloc.free(signaturePtr);
+    }
+  });
+  
+  return helper.execute(VerifyParams(data, publicKey, signature));
+}
+
+/// 字符串验证参数
+class VerifyFromBase64Params {
+  final String data;
+  final Uint8List publicKey;
+  final String signatureBase64;
+  
+  VerifyFromBase64Params(this.data, this.publicKey, this.signatureBase64);
 }
 
 /// 验证Base64编码的签名
 /// [data] 原始字符串数据
 /// [publicKey] 公钥
 /// [signatureBase64] Base64编码的签名
-bool verifyFromBase64(
+Future<bool> verifyFromBase64(
   String data,
   Uint8List publicKey,
   String signatureBase64,
-) {
-  final dataPtr = _stringToNative(data);
-  final publicKeyPtr = _uint8ListToPointer(publicKey);
-  final signatureBase64Ptr = _stringToNative(signatureBase64);
-  try {
-    final result = _bindings.goRsaVerifyFromBase64(
-      dataPtr,
-      publicKeyPtr,
-      publicKey.length,
-      signatureBase64Ptr,
-    );
-    return _processAndFreeBoolResult(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(publicKeyPtr);
-    calloc.free(signatureBase64Ptr);
-  }
+) async {
+  final helper = IsolateHelper<VerifyFromBase64Params, bool>((input) {
+    final dataPtr = _stringToNative(input.data);
+    final publicKeyPtr = _uint8ListToPointer(input.publicKey);
+    final signatureBase64Ptr = _stringToNative(input.signatureBase64);
+    try {
+      final result = _bindings.goRsaVerifyFromBase64(
+        dataPtr,
+        publicKeyPtr,
+        input.publicKey.length,
+        signatureBase64Ptr,
+      );
+      return _processAndFreeBoolResult(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(publicKeyPtr);
+      calloc.free(signatureBase64Ptr);
+    }
+  });
+  
+  return helper.execute(VerifyFromBase64Params(data, publicKey, signatureBase64));
 }
 
 /// 使用SHA1哈希算法验证签名
 /// [data] 原始数据
 /// [publicKey] 公钥
 /// [signature] 签名数据
-bool verifySha1(Uint8List data, Uint8List publicKey, Uint8List signature) {
-  final dataPtr = _uint8ListToPointer(data);
-  final publicKeyPtr = _uint8ListToPointer(publicKey);
-  final signaturePtr = _uint8ListToPointer(signature);
-  try {
-    final result = _bindings.goRsaVerifySha1(
-      dataPtr,
-      data.length,
-      publicKeyPtr,
-      publicKey.length,
-      signaturePtr,
-      signature.length,
-    );
-    return _processAndFreeBoolResult(result);
-  } finally {
-    calloc.free(dataPtr);
-    calloc.free(publicKeyPtr);
-    calloc.free(signaturePtr);
-  }
+Future<bool> verifySha1(Uint8List data, Uint8List publicKey, Uint8List signature) async {
+  final helper = IsolateHelper<VerifyParams, bool>((input) {
+    final dataPtr = _uint8ListToPointer(input.data);
+    final publicKeyPtr = _uint8ListToPointer(input.publicKey);
+    final signaturePtr = _uint8ListToPointer(input.signature);
+    try {
+      final result = _bindings.goRsaVerifySha1(
+        dataPtr,
+        input.data.length,
+        publicKeyPtr,
+        input.publicKey.length,
+        signaturePtr,
+        input.signature.length,
+      );
+      return _processAndFreeBoolResult(result);
+    } finally {
+      calloc.free(dataPtr);
+      calloc.free(publicKeyPtr);
+      calloc.free(signaturePtr);
+    }
+  });
+  
+  return helper.execute(VerifyParams(data, publicKey, signature));
 }
 
 /// 保持对Go内存的引用，防止被垃圾回收
